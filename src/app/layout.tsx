@@ -20,10 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${kanit.variable} antialiased`}
-      >
-        {children}
+      <body className={`${kanit.variable} antialiased min-h-screen bg-gray-50`}>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-1 flex flex-col">
+            {children}
+          </div>
+        </div>
       </body>
     </html>
   );

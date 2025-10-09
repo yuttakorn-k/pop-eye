@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProductGrid from './ProductGrid';
 import ShoppingCart from './ShoppingCart';
 import PaymentModal from './PaymentModal';
+import AddToCartAnimation from './AddToCartAnimation';
+import POSFooter from './POSFooter';
 import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
 import { usePOSWebSocket } from '../services/websocketService';
@@ -23,6 +25,13 @@ export interface CartItem {
   quantity: number;
 }
 
+interface AnimationState {
+  id: string;
+  product: Product;
+  startPosition: { x: number; y: number };
+  endPosition: { x: number; y: number };
+}
+
 interface POSInterfaceProps {
   selectedTable: string;
   onBackToTableSelection: () => void;
@@ -34,6 +43,8 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
   const [selectedCategory, setSelectedCategory] = useState<string>('ทั้งหมด');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [animations, setAnimations] = useState<AnimationState[]>([]);
+  const cartRef = useRef<HTMLDivElement>(null);
 
   const { products, categories, loading, error, searchProducts, getProductsByCategory } = useProducts();
   const { createOrder, loading: orderLoading } = useOrders();
@@ -74,6 +85,29 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
     }
   }, [wsMessage]);
 
+  // Global keyboard shortcuts (e.g., Ctrl+E to clear, Ctrl+P to checkout/hold)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey) return;
+      const key = e.key.toLowerCase();
+      if (key === 'e') {
+        e.preventDefault();
+        clearCart();
+      } else if (key === 'p') {
+        e.preventDefault();
+        setShowPaymentModal(true);
+      } else if (key === 'm') {
+        e.preventDefault();
+        console.log('open customer modal');
+      } else if (key === 'o') {
+        e.preventDefault();
+        console.log('open register/stock');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // Convert API products to local Product format
   const localProducts: Product[] = products.map(menu => ({
     id: menu.id,
@@ -90,7 +124,8 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
     ? localProducts 
     : localProducts.filter(p => p.category === selectedCategory);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, productElement?: HTMLElement) => {
+    // Add to cart immediately
     setCart(prev => {
       const existingItem = prev.find(item => item.product.id === product.id);
       if (existingItem) {
@@ -102,9 +137,39 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
       }
       return [...prev, { product, quantity: 1 }];
     });
+
+    // Create animation if product element is provided
+    if (productElement && cartRef.current) {
+      const productRect = productElement.getBoundingClientRect();
+      const cartRect = cartRef.current.getBoundingClientRect();
+      
+      const startPosition = {
+        x: productRect.left + productRect.width / 2,
+        y: productRect.top + productRect.height / 2
+      };
+      
+      const endPosition = {
+        x: cartRect.left + cartRect.width / 2,
+        y: cartRect.top + cartRect.height / 2
+      };
+
+      const animationId = `${Date.now()}-${product.id}-${Math.random().toString(36).slice(2,8)}`;
+      const newAnimation: AnimationState = {
+        id: animationId,
+        product,
+        startPosition,
+        endPosition
+      };
+
+      setAnimations(prev => [...prev, newAnimation]);
+    }
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const removeAnimation = (id: string) => {
+    setAnimations(prev => prev.filter(anim => anim.id !== id));
+  };
+
+  const updateQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) {
       setCart(prev => prev.filter(item => item.product.id !== productId));
     } else {
@@ -118,7 +183,7 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
     }
   };
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (productId: number) => {
     setCart(prev => prev.filter(item => item.product.id !== productId));
   };
 
@@ -147,39 +212,60 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
     if (query.trim()) {
       await searchProducts(query);
     } else {
-      await getProductsByCategory(selectedCategory);
+      if (selectedCategory === 'ทั้งหมด') {
+        await getProductsByCategory('ทั้งหมด');
+      } else {
+        const categoryId = categories.find(cat => cat.name_th === selectedCategory)?.id;
+        if (categoryId) {
+          await getProductsByCategory(categoryId);
+        }
+      }
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-800">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-700 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 shadow-sm px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Left Side - Title and Back Button */}
           <div className="flex items-center space-x-4">
             <button
               onClick={onBackToTableSelection}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 border border-gray-300"
             >
               <span>←</span>
               <span>เปลี่ยนโต๊ะ</span>
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white">Popeye steak</h1>
-              <p className="text-sm text-gray-400">โต๊ะ : {selectedTable}</p>
+              <h1 className="text-xl font-bold text-gray-900">Popeye steak</h1>
+              <p className="text-sm text-gray-600">โต๊ะ : {selectedTable}</p>
+            </div>
+          </div>
+
+          {/* Center - Search Bar */}
+          <div className="relative max-w-md flex-1 mx-8">
+            <input
+              type="text"
+              placeholder="ค้นหา"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-4 py-2 pl-10 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span className="text-gray-400">🔍</span>
             </div>
           </div>
 
           {/* Right Side - Time and Logout */}
           <div className="flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-sm text-gray-400">วันที่</p>
-              <p className="font-semibold text-white">{currentTime.toLocaleDateString('th-TH')}</p>
+              <p className="text-sm text-gray-500">วันที่</p>
+              <p className="font-semibold text-gray-900">{currentTime.toLocaleDateString('th-TH')}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-400">เวลา</p>
-              <p className="font-semibold text-white">{currentTime.toLocaleTimeString('th-TH')}</p>
+              <p className="text-sm text-gray-500">เวลา</p>
+              <p className="font-semibold text-gray-900">{currentTime.toLocaleTimeString('th-TH')}</p>
             </div>
             <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
               <span>⚡</span>
@@ -191,51 +277,36 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Product Section */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Search and Category Filter */}
-          <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-            <div className="flex flex-col space-y-4">
-              {/* Search Bar */}
-              <div className="relative max-w-md">
-                <input
-                  type="text"
-                  placeholder="ค้นหา"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400">🔍</span>
-                </div>
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex space-x-2 overflow-x-auto pb-2">
-                {categoryOptions.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => handleCategoryChange(category)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                      selectedCategory === category
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+        {/* Category Sidebar */}
+        <div className="w-56 bg-white border-r border-gray-200 flex flex-col shadow-sm">
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-3">
+              {categoryOptions.map(category => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={`w-full text-center px-4 py-6 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
 
+        {/* Product Section */}
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Product Grid */}
-          <div className="flex-1 p-6 overflow-y-auto bg-gray-800">
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-gray-50">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-400">กำลังโหลดสินค้า...</p>
+                  <p className="text-gray-600">กำลังโหลดสินค้า...</p>
                 </div>
               </div>
             ) : (
@@ -248,7 +319,7 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
         </div>
 
         {/* Cart Section */}
-        <div className="w-96 bg-gray-900 border-l border-gray-700 flex flex-col flex-shrink-0">
+        <div ref={cartRef} className="w-[420px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0 shadow-lg">
           <ShoppingCart
             cart={cart}
             selectedTable={selectedTable}
@@ -260,6 +331,15 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
           />
         </div>
       </div>
+
+      {/* Footer */}
+      <POSFooter
+        onClearCart={clearCart}
+        onOpenCustomer={() => console.log('open customer modal')}
+        onOpenRegister={() => console.log('open register/stock')}
+        onCheckout={() => setShowPaymentModal(true)}
+        onOpenSummary={() => console.log('open summary')}
+      />
 
       {/* Payment Modal */}
       {showPaymentModal && (
@@ -273,6 +353,20 @@ export default function POSInterface({ selectedTable, onBackToTableSelection }: 
           }}
         />
       )}
+
+      {/* Add to Cart Animations */}
+      {animations.map((animation) => (
+        <AddToCartAnimation
+          key={animation.id}
+          animationId={animation.id}
+          product={animation.product}
+          startPosition={animation.startPosition}
+          endPosition={animation.endPosition}
+          onComplete={() => removeAnimation(animation.id)}
+        />
+      ))}
+
+
     </div>
   );
 }

@@ -7,7 +7,7 @@ import ProductOptionsModal from './ProductOptionsModal';
 
 interface ProductGridProps {
   products: Product[];
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, productElement?: HTMLElement) => void;
 }
 
 export default function ProductGrid({ products, onAddToCart }: ProductGridProps) {
@@ -19,12 +19,12 @@ export default function ProductGrid({ products, onAddToCart }: ProductGridProps)
     return !!(product as any).options_group && (product as any).options_group.trim() !== '';
   };
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: Product, event: React.MouseEvent<HTMLDivElement>) => {
     if (hasOptions(product)) {
       setSelectedProduct(product);
       setShowOptionsModal(true);
     } else {
-      onAddToCart(product);
+      onAddToCart(product, event.currentTarget);
     }
   };
 
@@ -40,32 +40,30 @@ export default function ProductGrid({ products, onAddToCart }: ProductGridProps)
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
         {products.map(product => (
           <div
             key={product.id}
-            className="bg-gray-700 rounded-lg shadow-sm border border-gray-600 hover:shadow-md hover:bg-gray-600 transition-all cursor-pointer group"
-            onClick={() => handleProductClick(product)}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-transform duration-200 hover:-translate-y-0.5 cursor-pointer overflow-hidden"
+            onClick={(e) => handleProductClick(product, e)}
           >
-          <div className="aspect-square bg-gradient-to-br from-gray-600 to-gray-700 rounded-t-lg">
+          <div className="w-full h-40 md:h-44 xl:h-48 bg-gray-100">
             <ProductImage
               src={product.image}
               alt={product.name}
-              className="rounded-t-lg"
+              className="rounded-t-xl"
               fallbackIcon={getProductIcon(product.category)}
             />
           </div>
           
           <div className="p-3">
-            <h3 className="font-semibold text-white text-base mb-2 line-clamp-2 text-center">
+            <h3 className="font-semibold text-gray-900 text-sm md:text-base mb-1 line-clamp-2">
               {product.name}
             </h3>
             
-            <div className="text-center">
-              <span className="text-lg font-bold text-green-400">
-                ฿{product.price.toLocaleString()}
-              </span>
-            </div>
+            <span className="text-sm md:text-base font-semibold text-blue-600">
+              ฿{product.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
 
         </div>

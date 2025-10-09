@@ -83,7 +83,7 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
   const capacityDots = (count: number) => (
     <div className="flex -space-x-1.5">
       {Array.from({ length: count }).map((_, i) => (
-        <span key={i} className="inline-block w-3 h-3 rounded-full bg-white/80 ring-2 ring-gray-900" />
+        <span key={i} className="inline-block w-3 h-3 rounded-full bg-white ring-2 ring-gray-300" />
       ))}
     </div>
   );
@@ -94,15 +94,15 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
   };
 
   const Stat = ({ label, value }: { label: string; value: number }) => (
-    <div className="px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-300 text-sm">
-      <span className="text-gray-400">{label}:</span> <span className="font-semibold text-white">{value}</span>
+    <div className="px-3 py-2 rounded-lg bg-gray-100 border border-gray-300 text-gray-700 text-sm">
+      <span className="text-gray-600">{label}:</span> <span className="font-semibold text-gray-900">{value}</span>
     </div>
   );
 
   const Legend = ({ colorClass, label }: { colorClass: string; label: string }) => (
     <div className="flex items-center gap-2 text-sm">
       <span className={`w-3 h-3 rounded-full ${colorClass}`} />
-      <span className="text-gray-400">{label}</span>
+      <span className="text-gray-600">{label}</span>
     </div>
   );
 
@@ -123,44 +123,71 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
   }
 
   const TableGraphic = ({ number, capacity, status }: { number: string; capacity: number; status: Table['status'] }) => {
-    const chairsToRender = Math.min(Math.max(capacity, 2), 8);
-    const size = 128; // w-32 / h-32
-    const center = size / 2; // 64
-    const radius = 52; // radius for chairs circle
     const displayNumber = (number.replace(/[^0-9]/g, '') || number).toString();
+    
+    const tableColorByStatus = (status: Table['status']) => {
+      switch (status) {
+        case 'available':
+          return 'bg-white border border-gray-300';
+        case 'in-use':
+          return 'bg-red-400 border border-red-500';
+        case 'paid':
+          return 'bg-amber-400 border border-amber-500';
+        default:
+          return 'bg-white border border-gray-300';
+      }
+    };
+
+    const chairColorByStatus = (status: Table['status']) => {
+      switch (status) {
+        case 'available':
+          return 'bg-transparent border border-gray-300';
+        case 'in-use':
+          return 'bg-red-400 border border-red-500';
+        case 'paid':
+          return 'bg-amber-400 border border-amber-500';
+        default:
+          return 'bg-transparent border border-gray-300';
+      }
+    };
 
     return (
-      <div className="relative w-32 h-32">
-        {Array.from({ length: chairsToRender }).map((_, i) => {
-          const angle = (2 * Math.PI * i) / chairsToRender - Math.PI / 2; // start at top
-          const x = center + radius * Math.cos(angle);
-          const y = center + radius * Math.sin(angle);
-          return (
-            <span
-              key={i}
-              style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
-              className="absolute w-4 h-4 rounded-full bg-gray-300 border border-gray-600 shadow-sm"
-            />
-          );
-        })}
-        <div className={`absolute inset-6 rounded-full border grid place-content-center text-2xl font-extrabold ${tableFillByStatus(status)}`}>
-          {displayNumber}
+      <div className="relative w-40 h-40">
+        {/* Table - Large rounded square with color based on status */}
+        <div className={`absolute inset-2 rounded-3xl ${tableColorByStatus(status)}`}>
+          {/* Table number badge - centered with gray background like in the image */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-200 rounded-full w-16 h-16 flex items-center justify-center">
+            <span className="text-2xl font-bold text-gray-800">{displayNumber}</span>
+          </div>
         </div>
+
+        {/* Chairs - 4 rounded rectangles around the table with color based on status */}
+        {/* Top chair - horizontal (wider than tall) */}
+        <div className={`absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-5 w-16 h-5 rounded-3xl ${chairColorByStatus(status)}`}></div>
+        
+        {/* Bottom chair - horizontal (wider than tall) */}
+        <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-5 w-16 h-5 rounded-3xl ${chairColorByStatus(status)}`}></div>
+        
+        {/* Left chair - vertical (taller than wide) */}
+        <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-5 w-5 h-16 rounded-3xl ${chairColorByStatus(status)}`}></div>
+        
+        {/* Right chair - vertical (taller than wide) */}
+        <div className={`absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-5 w-5 h-16 rounded-3xl ${chairColorByStatus(status)}`}></div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-gray-900/70 bg-gray-900/90 border-b border-gray-800">
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">PS</div>
+              <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">PS</div>
               <div>
-                <h1 className="text-lg font-semibold text-white">เลือกโต๊ะ</h1>
-                <p className="text-xs text-gray-400">Popeye POS</p>
+                <h1 className="text-lg font-semibold text-gray-900">เลือกโต๊ะ</h1>
+                <p className="text-xs text-gray-600">Popeye POS</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -171,13 +198,13 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
 
           <div className="mt-4 flex flex-col md:flex-row gap-3">
             {/* Zone filter */}
-            <div className="inline-flex items-center bg-gray-800/80 border border-gray-700 rounded-lg p-1">
+            <div className="inline-flex items-center bg-gray-100 border border-gray-300 rounded-lg p-1">
               {(['ทั้งหมด', 'นอก', 'กลาง', 'ใน'] as const).map(z => (
                 <button
                   key={z}
                   onClick={() => setZoneFilter(z)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    zoneFilter === z ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
+                    zoneFilter === z ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-200'
                   }`}
                 >
                   {z}
@@ -191,7 +218,7 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="ค้นหาโต๊ะ เช่น 12"
-                className="w-full pl-10 pr-3 py-2.5 bg-gray-800/80 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
             </div>
@@ -211,15 +238,15 @@ export default function TableSelection({ onTableSelect }: TableSelectionProps) {
         {/* Unified table list with optional zone filter */}
         {filteredTables.length === 0 ? (
           <div className="h-[60vh] grid place-content-center">
-            <p className="text-gray-400">ไม่พบโต๊ะตามที่ค้นหา</p>
+            <p className="text-gray-600">ไม่พบโต๊ะตามที่ค้นหา</p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap gap-8">
             {filteredTables.map(table => (
               <button
                 key={table.id}
                 onClick={() => handleTableClick(table)}
-                className="group relative p-1 rounded-lg hover:bg-gray-800/30 transition-colors text-left"
+                className="group relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-left"
                 title={`โซน${table.zone}`}
               >
                 <div className="p-2 flex items-center gap-3">

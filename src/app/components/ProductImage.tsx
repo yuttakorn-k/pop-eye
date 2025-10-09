@@ -54,7 +54,7 @@ export default function ProductImage({ src, alt, className = '', fallbackIcon }:
       <img
         src={imageUrl}
         alt={alt}
-        className={`w-full h-full object-cover rounded-t-lg ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+        className={`w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
         onLoad={() => setIsLoading(false)}
         onError={() => {
           setHasError(true);
