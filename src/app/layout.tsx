@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const kanit = Kanit({
   variable: "--font-kanit",
@@ -21,11 +22,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${kanit.variable} antialiased min-h-screen bg-gray-50`}>
-        <div className="min-h-screen flex flex-col">
-          <div className="flex-1 flex flex-col">
-            {children}
+        <Providers>
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-1 flex flex-col">
+              {children}
+            </div>
           </div>
-        </div>
+        </Providers>
       </body>
     </html>
   );

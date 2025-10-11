@@ -26,7 +26,6 @@ export default function POSFooter({
             <span className="text-xl">🗑️</span>
             <div className="leading-tight text-left hidden md:block">
               <div className="font-semibold text-sm">เคลียร์</div>
-              <div className="text-xs text-gray-400">(Ctrl+E)</div>
             </div>
             <div className="leading-tight text-center md:hidden">
               <div className="font-semibold text-xs">เคลียร์</div>
@@ -40,7 +39,6 @@ export default function POSFooter({
             <span className="text-xl">👥</span>
             <div className="leading-tight text-left hidden md:block">
               <div className="font-semibold text-sm">ลูกค้า</div>
-              <div className="text-xs text-gray-400">(Ctrl+M)</div>
             </div>
             <div className="leading-tight text-center md:hidden">
               <div className="font-semibold text-xs">ลูกค้า</div>
@@ -54,7 +52,6 @@ export default function POSFooter({
             <span className="text-xl">🧾</span>
             <div className="leading-tight text-left hidden md:block">
               <div className="font-semibold text-sm">สลิป/บิล</div>
-              <div className="text-xs text-gray-400">(Ctrl+O)</div>
             </div>
             <div className="leading-tight text-center md:hidden">
               <div className="font-semibold text-xs">สลิป/บิล</div>
@@ -68,7 +65,6 @@ export default function POSFooter({
             <span className="text-xl">🛒</span>
             <div className="leading-tight text-left hidden md:block">
               <div className="font-semibold text-sm">พัก</div>
-              <div className="text-xs text-gray-400">(Ctrl+P)</div>
             </div>
             <div className="leading-tight text-center md:hidden">
               <div className="font-semibold text-xs">พัก</div>

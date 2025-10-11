@@ -32,10 +32,10 @@ export default function AddToCartAnimation({
   const deltaX = endPosition.x - startPosition.x;
   const deltaY = endPosition.y - startPosition.y;
   const distance = Math.hypot(deltaX, deltaY);
-  const durationSec = Math.min(1.35, Math.max(0.85, distance / 600));
-  const arc = Math.min(160, Math.max(60, distance * 0.28));
-  const overshootX = Math.sign(deltaX) * Math.min(12, Math.abs(deltaX) * 0.06);
-  const overshootY = Math.sign(deltaY) * Math.min(10, Math.abs(deltaY) * 0.05);
+  const durationSec = Math.min(1.2, Math.max(0.8, distance / 500));
+  const arc = Math.min(120, Math.max(40, distance * 0.25));
+  const overshootX = Math.sign(deltaX) * Math.min(8, Math.abs(deltaX) * 0.04);
+  const overshootY = Math.sign(deltaY) * Math.min(6, Math.abs(deltaY) * 0.03);
 
   return (
     <>
@@ -43,40 +43,19 @@ export default function AddToCartAnimation({
         __html: `
           @keyframes flyToCart-${animationId} {
             0% {
-              transform: translate3d(-50%, -50%, 0) translate3d(0px, 0px, 0) scale(0.9) rotate(0deg);
-              opacity: 0;
-              filter: drop-shadow(0px 0px 0px rgba(0,0,0,0));
-            }
-            12% {
-              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX * 0.12}px, ${deltaY * 0.12 - Math.max(24, arc * 0.22)}px, 0) scale(1.08) rotate(6deg);
+              transform: translate3d(-50%, -50%, 0) translate3d(0px, 0px, 0) scale(1);
               opacity: 1;
-              filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.25));
-            }
-            38% {
-              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX * 0.38}px, ${deltaY * 0.38 - arc}px, 0) scale(0.98) rotate(0deg);
-              opacity: 1;
-              filter: drop-shadow(0px 10px 16px rgba(0,0,0,0.28));
-            }
-            68% {
-              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX * 0.68}px, ${deltaY * 0.68 - Math.max(28, arc * 0.42)}px, 0) scale(0.64) rotate(-6deg);
-              opacity: 1;
-              filter: drop-shadow(0px 6px 10px rgba(0,0,0,0.2));
-            }
-            86% {
-              /* slight overshoot */
-              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX + overshootX}px, ${deltaY + overshootY}px, 0) scale(0.36) rotate(0deg);
-              opacity: 0.9;
-              filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.15));
+              filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));
             }
             100% {
-              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX}px, ${deltaY}px, 0) scale(0.32) rotate(360deg);
+              transform: translate3d(-50%, -50%, 0) translate3d(${deltaX}px, ${deltaY}px, 0) scale(0.2);
               opacity: 0;
               filter: drop-shadow(0px 0px 0px rgba(0,0,0,0));
             }
           }
 
           .fly-animation-${animationId} {
-            animation: flyToCart-${animationId} ${durationSec}s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            animation: flyToCart-${animationId} ${durationSec}s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
             will-change: transform, opacity, filter;
             transform-origin: center center;
             backface-visibility: hidden;
@@ -104,7 +83,7 @@ export default function AddToCartAnimation({
         <div className="relative">
         {/* Product Image - starts from card size and shrinks */}
         <div className="relative">
-          <div className="w-32 h-32 rounded-lg overflow-hidden shadow-lg border border-gray-600 bg-gray-700">
+          <div className="w-24 h-24 rounded-lg overflow-hidden shadow-lg border border-gray-300 bg-white">
             <ProductImage
               src={product.image}
               alt={product.name}

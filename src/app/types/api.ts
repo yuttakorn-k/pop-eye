@@ -10,7 +10,6 @@ export interface MenuOut {
   image?: string;
   is_available?: boolean;
   is_recommended?: boolean;
-  options_group?: string; // Field to indicate if product has options
   created_at?: string;
   updated_at?: string;
 }
@@ -25,10 +24,47 @@ export interface MenuCreate {
   image?: string;
   is_available?: boolean;
   is_recommended?: boolean;
-  options_group?: string;
 }
 
 export interface MenuUpdate extends Partial<MenuCreate> {}
+
+// Menu Option Types (ตัวเลือกแต่ละอัน เช่น "น้ำสลัดซีซาร์", "สุกปานกลาง")
+export interface MenuOptionOut {
+  id: number;
+  option_group_id?: number; // Optional เพราะบาง API ไม่ return field นี้
+  name_th: string;
+  name_en?: string;
+  name_mm?: string;
+  price: number;
+  is_default?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Option Group Types (ตารางกลุ่มตัวเลือก เช่น "น้ำสลัด", "ระดับความสุก")
+export interface MenuOptionGroupOut {
+  id: number;
+  name_th: string;
+  name_en?: string;
+  name_mm?: string;
+  is_required?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  options?: MenuOptionOut[]; // เพิ่ม options array ที่ backend return มาด้วย
+}
+
+// Menu-Option Group Mapping Types (ตาราง mapping ระหว่าง menu กับ option_group)
+export interface MenuOptionGroupMappingOut {
+  menu_id: number;
+  option_group_id: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MenuOptionGroupMappingCreate {
+  menu_id: number;
+  option_group_id: number;
+}
 
 // Category Types
 export interface CategoryOut {

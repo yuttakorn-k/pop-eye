@@ -5,13 +5,18 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run electron\"",
+    "dev:web": "next dev",
+    "dev:electron": "NODE_ENV=development electron electron/main.js",
     "build": "next build",
+    "build:export": "next build && next export",
     "start": "electron electron/main.js",
     "electron": "NODE_ENV=development electron electron/main.js",
     "dist": "electron-builder"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.5",
     "axios": "^1.12.2",
+    "framer-motion": "^12.23.22",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0"

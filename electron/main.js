@@ -1,6 +1,11 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
+if (!app) {
+  console.error("Electron app module not available");
+  process.exit(1);
+}
+
 let mainWindow;
 
 function createWindow() {
@@ -16,29 +21,29 @@ function createWindow() {
     },
   });
 
-  const devUrl = "http://localhost:3000"; // Updated to port 3000
+  const devUrl = "http://localhost:3000";
   const prodUrl = `file://${path.join(__dirname, "../out/index.html")}`;
 
   mainWindow.loadURL(process.env.NODE_ENV === "development" ? devUrl : prodUrl);
 
+  // Open DevTools in development mode
+  if (process.env.NODE_ENV === "development") {
+    mainWindow.webContents.openDevTools();
+  }
+
   mainWindow.on("closed", () => (mainWindow = null));
 }
 
-// Check if we're in an Electron environment
-if (typeof app !== 'undefined' && app) {
-  app.on("ready", createWindow);
+app.whenReady().then(createWindow);
 
-  app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-      app.quit();
-    }
-  });
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
 
-  app.on("activate", () => {
-    if (mainWindow === null) {
-      createWindow();
-    }
-  });
-} else {
-  console.log("Not running in Electron environment");
-}
+app.on("activate", () => {
+  if (mainWindow === null) {
+    createWindow();
+  }
+});

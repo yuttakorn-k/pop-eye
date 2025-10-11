@@ -14,14 +14,17 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
+    console.log('🚀 Axios Request:', config.method?.toUpperCase(), config.baseURL + config.url);
+    
     // Add auth token if available
-    const token = localStorage.getItem('auth_token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    console.error('❌ Axios Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -29,20 +32,23 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('✅ Axios Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
+    console.error('❌ Axios Response Error:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: error.config?.url
+    });
+    
     // Handle common errors
     if (error.response?.status === 401) {
       // Unauthorized - redirect to login or clear token
-      localStorage.removeItem('auth_token');
-    }
-    
-    // Suppress timeout error logs in development
-    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
-      // Don't log timeout errors to console in development
-      if (process.env.NODE_ENV !== 'development') {
-        console.error('API Timeout:', error.message);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
       }
     }
     
