@@ -3,11 +3,18 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HiAdjustmentsHorizontal, HiArrowUpTray, HiBanknotes, HiBars3, HiBell, HiBuildingStorefront, HiCalculator, HiCamera, HiChartBar, HiCheckCircle, HiChevronDown, HiCircleStack, HiClipboard, HiClipboardDocumentList, HiCog, HiCog6Tooth, HiCreditCard, HiCube, HiCurrencyDollar, HiDocument, HiExclamationTriangle, HiFlag, HiFolder, HiHome, HiLockClosed, HiMapPin, HiPencil, HiPlus, HiPresentationChartBar, HiShoppingCart, HiSparkles, HiStar, HiSun, HiTrash, HiUserCircle, HiUsers, HiViewColumns, HiXMark } from "react-icons/hi2";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<'hourly' | 'daily' | 'weekly' | 'monthly'>('daily');
+  const [isFullReportModalOpen, setIsFullReportModalOpen] = useState(false);
+  const [isFullReportModalClosing, setIsFullReportModalClosing] = useState(false);
   
   // Profit Calculator States
   const [totalSales, setTotalSales] = useState(0);
@@ -52,6 +59,189 @@ export default function AdminPage() {
       netProfit: 0,
       profitMargin: 0
     });
+  };
+
+  // Orders data with detailed items
+  const ordersData = [
+    {
+      id: "#001",
+      table: "โต๊ะ 1",
+      items: 3,
+      itemList: "สเต็กเนื้อ, น้ำอัดลม, เฟรนช์ฟราย",
+      itemDetails: [
+        { name: "สเต็กเนื้อ", quantity: 1, price: 180 },
+        { name: "น้ำอัดลม", quantity: 1, price: 35 },
+        { name: "เฟรนช์ฟราย", quantity: 1, price: 35 },
+      ],
+      total: "฿250",
+      totalNum: 250,
+      status: "เสร็จแล้ว",
+      time: "13:45",
+    },
+    {
+      id: "#002",
+      table: "โต๊ะ 5",
+      items: 2,
+      itemList: "สเต็กหมู, สลัดผัก",
+      itemDetails: [
+        { name: "สเต็กหมู", quantity: 1, price: 159 },
+        { name: "สลัดผัก", quantity: 1, price: 30 },
+      ],
+      total: "฿189",
+      totalNum: 189,
+      status: "เสร็จแล้ว",
+      time: "13:30",
+    },
+    {
+      id: "#003",
+      table: "โต๊ะ 3",
+      items: 4,
+      itemList: "สเต็กไก่, ข้าวผัด, น้ำส้ม, ไอศกรีม",
+      itemDetails: [
+        { name: "สเต็กไก่", quantity: 1, price: 149 },
+        { name: "ข้าวผัด", quantity: 1, price: 80 },
+        { name: "น้ำส้ม", quantity: 1, price: 40 },
+        { name: "ไอศกรีม", quantity: 1, price: 51 },
+      ],
+      total: "฿320",
+      totalNum: 320,
+      status: "เสร็จแล้ว",
+      time: "13:15",
+    },
+    {
+      id: "#004",
+      table: "Takeaway",
+      items: 1,
+      itemList: "สเต็กเนื้อ",
+      itemDetails: [
+        { name: "สเต็กเนื้อ", quantity: 1, price: 180 },
+      ],
+      total: "฿180",
+      totalNum: 180,
+      status: "เสร็จแล้ว",
+      time: "12:50",
+    },
+    {
+      id: "#005",
+      table: "โต๊ะ 7",
+      items: 2,
+      itemList: "สเต็กแซลมอน, น้ำมะนาว",
+      itemDetails: [
+        { name: "สเต็กแซลมอน", quantity: 1, price: 240 },
+        { name: "น้ำมะนาว", quantity: 1, price: 40 },
+      ],
+      total: "฿280",
+      totalNum: 280,
+      status: "เสร็จแล้ว",
+      time: "12:30",
+    },
+    {
+      id: "#006",
+      table: "โต๊ะ 2",
+      items: 3,
+      itemList: "สเต็กหมู, สลัดซีซาร์, น้ำอัดลม",
+      itemDetails: [
+        { name: "สเต็กหมู", quantity: 1, price: 159 },
+        { name: "สลัดซีซาร์", quantity: 1, price: 31 },
+        { name: "น้ำอัดลม", quantity: 1, price: 35 },
+      ],
+      total: "฿225",
+      totalNum: 225,
+      status: "เสร็จแล้ว",
+      time: "12:15",
+    },
+  ];
+
+  // Calculate item sales statistics
+  const calculateItemSales = () => {
+    const itemSales: { [key: string]: { quantity: number; revenue: number } } = {};
+    
+    ordersData.forEach(order => {
+      order.itemDetails.forEach(item => {
+        if (!itemSales[item.name]) {
+          itemSales[item.name] = { quantity: 0, revenue: 0 };
+        }
+        itemSales[item.name].quantity += item.quantity;
+        itemSales[item.name].revenue += item.price * item.quantity;
+      });
+    });
+
+    return Object.entries(itemSales)
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.quantity - a.quantity); // Sort by quantity sold (best sellers first)
+  };
+
+  const itemSalesData = calculateItemSales();
+
+  // Calculate dashboard data
+  const totalRevenue = ordersData.reduce((sum, order) => sum + order.totalNum, 0);
+  const totalOrders = ordersData.length;
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  // Chart data for different periods
+  const chartData = {
+    hourly: [
+      { label: '9:00', sales: 180, orders: 2 },
+      { label: '10:00', sales: 250, orders: 3 },
+      { label: '11:00', sales: 320, orders: 4 },
+      { label: '12:00', sales: 480, orders: 6 },
+      { label: '13:00', sales: 380, orders: 5 },
+      { label: '14:00', sales: 420, orders: 4 },
+      { label: '15:00', sales: 280, orders: 3 },
+      { label: '16:00', sales: 350, orders: 4 }
+    ],
+    daily: [
+      { label: 'จ.', sales: 1200, orders: 8 },
+      { label: 'อ.', sales: 1350, orders: 9 },
+      { label: 'พ.', sales: 980, orders: 6 },
+      { label: 'พฤ.', sales: 1580, orders: 11 },
+      { label: 'ศ.', sales: 1420, orders: 10 },
+      { label: 'ส.', sales: 1680, orders: 12 },
+      { label: 'อา.', sales: totalRevenue, orders: totalOrders }
+    ],
+    weekly: [
+      { label: 'สัปดาห์ 1', sales: 8500, orders: 58 },
+      { label: 'สัปดาห์ 2', sales: 9200, orders: 64 },
+      { label: 'สัปดาห์ 3', sales: 7800, orders: 52 },
+      { label: 'สัปดาห์ 4', sales: 10100, orders: 71 }
+    ],
+    monthly: [
+      { label: 'ม.ค.', sales: 35000, orders: 245 },
+      { label: 'ก.พ.', sales: 32000, orders: 220 },
+      { label: 'มี.ค.', sales: 38000, orders: 265 },
+      { label: 'เม.ย.', sales: 36000, orders: 250 },
+      { label: 'พ.ค.', sales: 41000, orders: 285 },
+      { label: 'มิ.ย.', sales: 39000, orders: 270 },
+      { label: 'ก.ค.', sales: 42000, orders: 295 },
+      { label: 'ส.ค.', sales: 40000, orders: 280 },
+      { label: 'ก.ย.', sales: 37000, orders: 260 },
+      { label: 'ต.ค.', sales: 35000, orders: 245 },
+      { label: 'พ.ย.', sales: totalRevenue * 30, orders: totalOrders * 30 } // Current month estimate
+    ]
+  };
+
+  const periodLabels = {
+    hourly: 'รายชั่วโมง (วันนี้)',
+    daily: 'รายวัน (7 วันล่าสุด)', 
+    weekly: 'รายสัปดาห์ (เดือนนี้)',
+    monthly: 'รายเดือน (ปีนี้)'
+  };
+
+  const handleCloseModal = () => {
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setIsOrderModalOpen(false);
+      setIsModalClosing(false);
+      setSelectedOrder(null);
+    }, 200);
+  };
+
+  const handleCloseFullReportModal = () => {
+    setIsFullReportModalClosing(true);
+    setTimeout(() => {
+      setIsFullReportModalOpen(false);
+      setIsFullReportModalClosing(false);
+    }, 200);
   };
 
   return (
@@ -164,20 +354,15 @@ export default function AdminPage() {
                   icon: <HiHome className="w-5 h-5" />,
                   active: activeTab === "dashboard",
                 },
-                { 
-                  name: "รายงาน", 
-                  icon: <HiPresentationChartBar className="w-5 h-5" />, 
-                  active: activeTab === "reports" 
-                },
                 {
                   name: "วัตถุดิบ",
                   icon: <HiDocument className="w-5 h-5" />,
                   active: activeTab === "inventory",
                 },
                 {
-                  name: "จัดการเมนู",
-                  icon: <HiShoppingCart className="w-5 h-5" />,
-                  active: activeTab === "menu",
+                  name: "รายการออเดอร์",
+                  icon: <HiClipboard className="w-5 h-5" />,
+                  active: activeTab === "orders",
                 },
                 {
                   name: "ข้อมูลสินค้า",
@@ -188,6 +373,11 @@ export default function AdminPage() {
                   name: "คำนวณกำไร", 
                   icon: <HiCalculator className="w-5 h-5" />, 
                   active: activeTab === "profit" 
+                },
+                { 
+                  name: "รายงาน", 
+                  icon: <HiPresentationChartBar className="w-5 h-5" />, 
+                  active: activeTab === "reports" 
                 },
                 {
                   name: "ข้อมูลร้าน",
@@ -200,13 +390,12 @@ export default function AdminPage() {
                   onClick={() => {
                     if (item.name === "แดชบอร์ด") setActiveTab("dashboard");
                     else if (item.name === "รายงาน") setActiveTab("reports");
-                    else if (item.name === "วัตถุดิบ")
-                      setActiveTab("inventory");
+                    else if (item.name === "วัตถุดิบ") setActiveTab("inventory");
+                    else if (item.name === "รายการออเดอร์") setActiveTab("orders");
                     else if (item.name === "ข้อมูลสินค้า") setActiveTab("menu");
+                    else if (item.name === "คำนวณกำไร") setActiveTab("profit");
                     else if (item.name === "ข้อมูลร้าน")
                       setActiveTab("settings");
-                    else if (item.name === "คำนวณกำไร") setActiveTab("profit");
-                    else if (item.name === "จัดการเมนู") setActiveTab("menu");
                     setIsSidebarOpen(false);
                   }}
                   className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -317,7 +506,7 @@ export default function AdminPage() {
                 <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 sm:space-x-4">
                     <h2 className="text-sm sm:text-lg font-semibold text-gray-800">
-                      ยอดขายวันที่ 14/10/2025 15:09
+                      ยอดขายวันที่ 5/11/2025 {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                     </h2>
                   </div>
                 </div>
@@ -329,62 +518,225 @@ export default function AdminPage() {
                   <div className="space-y-1 sm:space-y-2 border-r border-gray-200 pr-2 sm:pr-4">
                     <p className="text-gray-600 text-xs sm:text-sm">ยอดรวม</p>
                     <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-blue-600">
-                      ฿0.00
+                      ฿{totalRevenue.toLocaleString()}
                     </p>
                   </div>
                   <div className="space-y-1 sm:space-y-2 lg:border-r border-gray-200 lg:pr-4">
                     <p className="text-gray-600 text-xs sm:text-sm">
-                      การเติบโต
+                      จำนวนออเดอร์
                     </p>
                     <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-green-500">
-                      0%
+                      {totalOrders}
                     </p>
                   </div>
                   <div className="space-y-1 sm:space-y-2 border-r border-gray-200 pr-2 sm:pr-4 lg:pr-4">
-                    <p className="text-gray-600 text-xs sm:text-sm">ยกเลิก</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">เฉลี่ย/บิล</p>
                     <div className="flex items-center justify-center">
-                      <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-blue-600">
-                        0
+                      <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-purple-600">
+                        ฿{Math.round(avgOrderValue)}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-1 sm:space-y-2">
                     <p className="text-gray-600 text-xs sm:text-sm">
-                      เงินสด/บิล
+                      สินค้า/บิล
                     </p>
                     <div className="flex items-center justify-center">
-                      <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-blue-600">
-                        ฿0.00
+                      <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-orange-600">
+                        {Math.round(ordersData.reduce((sum, order) => sum + order.items, 0) / totalOrders) || 0}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Empty State Chart Area - Responsive */}
-              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:p-8 text-center">
-                <div className="mx-auto w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 rounded-full flex items-center justify-center mb-4 sm:mb-6">
-                  <HiPresentationChartBar className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 text-gray-300" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">
-                  ไม่มีข้อมูล
-                </h3>
-                <p className="text-sm sm:text-base text-gray-500 mb-4">
-                  ยังไม่มีรายการขายในวันนี้ เริ่มต้นใช้งานระบบ POS
-                  เพื่อดูข้อมูลการขาย
-                </p>
+              {/* Dashboard Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Sales Chart Block */}
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:p-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-medium text-gray-900">
+                      กราฟสินค้าขายดี
+                    </h3>
+                    <HiPresentationChartBar className="w-6 h-6 text-blue-600" />
+                  </div>
+                  
+                  {/* Professional Chart with Recharts */}
+                  <div className="mb-6">
+                    {/* Chart Title and Controls */}
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">แผนภูมิยอดขาย</p>
+                        <p className="text-xs text-gray-500">{periodLabels[chartPeriod]}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {/* Period Selection Buttons */}
+                        <div className="flex bg-gray-100 rounded-lg p-1">
+                          {[
+                            { key: 'hourly', label: 'รายชั่วโมง' },
+                            { key: 'daily', label: 'รายวัน' },
+                            { key: 'weekly', label: 'รายสัปดาห์' },
+                            { key: 'monthly', label: 'รายเดือน' }
+                          ].map((period) => (
+                            <button
+                              key={period.key}
+                              onClick={() => setChartPeriod(period.key as any)}
+                              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                                chartPeriod === period.key
+                                  ? 'bg-blue-500 text-white'
+                                  : 'text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {period.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Action Buttons - Responsive */}
-                <div className="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-                  <button
-                    onClick={() => router.push("/")}
-                    className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
-                  >
-                    เริ่มขาย
-                  </button>
-                  <button className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm sm:text-base">
-                    ดูการตั้งค่า
-                  </button>
+                    {/* Recharts Bar Chart */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart
+                          data={chartData[chartPeriod]}
+                          margin={{
+                            top: 20,
+                            right: 20,
+                            left: 20,
+                            bottom: 20,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
+                          <XAxis 
+                            dataKey="label"
+                            axisLine={{ stroke: '#6b7280' }}
+                            tickLine={{ stroke: '#6b7280' }}
+                            tick={{ fontSize: 11, fill: '#6b7280' }}
+                          />
+                          <YAxis 
+                            axisLine={{ stroke: '#6b7280' }}
+                            tickLine={{ stroke: '#6b7280' }}
+                            tick={{ fontSize: 10, fill: '#6b7280' }}
+                            width={60}
+                            tickFormatter={(value) => {
+                              if (chartPeriod === 'hourly') return `฿${value}`;
+                              if (chartPeriod === 'daily') return `฿${(value/1000).toFixed(1)}k`;
+                              if (chartPeriod === 'weekly') return `฿${(value/1000).toFixed(1)}k`;
+                              return `฿${(value/1000).toFixed(0)}k`;
+                            }}
+                          />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: '#1f2937',
+                              border: 'none',
+                              borderRadius: '8px',
+                              color: 'white',
+                              fontSize: '12px'
+                            }}
+                            formatter={(value: any, name: string) => [
+                              name === 'sales' ? `฿${value.toLocaleString()}` : `${value} ออเดอร์`,
+                              name === 'sales' ? 'ยอดขาย' : 'จำนวนออเดอร์'
+                            ]}
+                            labelFormatter={(label: any) => {
+                              const periodTitles = {
+                                hourly: `เวลา ${label}`,
+                                daily: `วัน${label}`,
+                                weekly: `${label}`,
+                                monthly: `เดือน ${label}`
+                              };
+                              return periodTitles[chartPeriod] || label;
+                            }}
+                          />
+                          <Bar 
+                            dataKey="sales" 
+                            fill="url(#colorGradient)"
+                            radius={[4, 4, 0, 0]}
+                            stroke="#e5e7eb"
+                            strokeWidth={1}
+                          />
+                          <defs>
+                            <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6" />
+                              <stop offset="100%" stopColor="#1d4ed8" />
+                            </linearGradient>
+                          </defs>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      
+                      {/* X-Axis Label */}
+                      <div className="text-center mt-2">
+                        <p className="text-xs text-gray-500">
+                          {chartPeriod === 'hourly' && 'ช่วงเวลา (วันนี้)'}
+                          {chartPeriod === 'daily' && 'วันในสัปดาห์ (7 วันล่าสุด)'}
+                          {chartPeriod === 'weekly' && 'สัปดาห์ในเดือน (เดือนนี้)'}
+                          {chartPeriod === 'monthly' && 'เดือนในปี (ปีนี้)'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sales Items Block */}
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:p-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-medium text-gray-900">
+                      สินค้าขายดี
+                    </h3>
+                    <HiStar className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  
+                  {/* Best Selling Items List */}
+                  <div className="space-y-3 mb-6">
+                    {itemSalesData.slice(0, 5).map((item, index) => {
+                      const rankColors = [
+                        'bg-yellow-100 text-yellow-600 border-yellow-200', // 1st
+                        'bg-gray-100 text-gray-600 border-gray-200',       // 2nd
+                        'bg-orange-100 text-orange-600 border-orange-200', // 3rd
+                        'bg-blue-100 text-blue-600 border-blue-200',       // 4th
+                        'bg-green-100 text-green-600 border-green-200'     // 5th
+                      ];
+                      const icons = [
+                        <HiStar className="w-3 h-3" />,
+                        <HiStar className="w-3 h-3" />,
+                        <HiStar className="w-3 h-3" />,
+                        <HiCheckCircle className="w-3 h-3" />,
+                        <HiCheckCircle className="w-3 h-3" />
+                      ];
+                      
+                      return (
+                        <div
+                          key={item.name}
+                          className={`w-full flex items-center justify-between p-3 border rounded-lg ${rankColors[index]} transition-colors`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${rankColors[index]}`}>
+                              <div className="flex items-center space-x-1">
+                                {icons[index]}
+                                <span className="text-xs font-bold">#{index + 1}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                              <p className="text-xs text-gray-500">ขายแล้ว {item.quantity} ชิ้น</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900 text-sm">฿{item.revenue.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">รายได้</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      onClick={() => setIsFullReportModalOpen(true)}
+                      className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
+                    >
+                      รายงานเต็ม
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -434,68 +786,49 @@ export default function AdminPage() {
                 รายการออเดอร์
               </h2>
               <div className="space-y-4">
-                {[
-                  {
-                    id: "#001",
-                    table: "โต๊ะ 1",
-                    items: 3,
-                    total: "฿150",
-                    status: "เสร็จแล้ว",
-                    time: "14:30",
-                  },
-                  {
-                    id: "#002",
-                    table: "โต๊ะ 5",
-                    items: 2,
-                    total: "฿89",
-                    status: "กำลังทำ",
-                    time: "14:25",
-                  },
-                  {
-                    id: "#003",
-                    table: "Takeaway",
-                    items: 1,
-                    total: "฿45",
-                    status: "รอชำระ",
-                    time: "14:20",
-                  },
-                ].map((order) => (
-                  <div
+                {ordersData.map((order) => (
+                  <button
                     key={order.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setIsOrderModalOpen(true);
+                    }}
+                    className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">
-                          {order.id}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold">
+                            {order.id}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {order.table}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {order.items} รายการ • {order.time}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          {order.total}
+                        </p>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            order.status === "เสร็จแล้ว"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "กำลังทำ"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {order.status}
                         </span>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {order.table}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {order.items} รายการ • {order.time}
-                        </p>
-                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
-                        {order.total}
-                      </p>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          order.status === "เสร็จแล้ว"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "กำลังทำ"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1001,6 +1334,228 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      {isOrderModalOpen && selectedOrder && (
+        <div 
+          className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${
+            isModalClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`}
+          onClick={handleCloseModal}
+        >
+          <div 
+            className={`bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto transform transition-all duration-300 ${
+              isModalClosing ? 'animate-scale-out' : 'animate-scale-in'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                รายละเอียดออเดอร์ {selectedOrder.id}
+              </h3>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <HiXMark className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4">
+              {/* Order Info */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">โต๊ะ:</span>
+                  <span className="font-medium">{selectedOrder.table}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">เวลา:</span>
+                  <span className="font-medium">{selectedOrder.time}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">สถานะ:</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      selectedOrder.status === "เสร็จแล้ว"
+                        ? "bg-green-100 text-green-800"
+                        : selectedOrder.status === "กำลังทำ"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {selectedOrder.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">ยอดรวม:</span>
+                  <span className="font-bold text-lg text-blue-600">{selectedOrder.total}</span>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium text-gray-900 mb-3">รายการสินค้า:</h4>
+                <div className="space-y-2">
+                  {selectedOrder.itemList.split(', ').map((item: string, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">{item}</span>
+                      <HiCheckCircle className="w-4 h-4 text-green-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end space-x-2 p-4 border-t">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Sales Report Modal */}
+      {isFullReportModalOpen && (
+        <div 
+          className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${
+            isFullReportModalClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`}
+          onClick={handleCloseFullReportModal}
+        >
+          <div 
+            className={`bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto transform transition-all duration-300 ${
+              isFullReportModalClosing ? 'animate-scale-out' : 'animate-scale-in'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center space-x-3">
+                <HiPresentationChartBar className="w-6 h-6 text-green-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    รายงานสินค้าขายดี
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    รายการสินค้าทั้งหมดจัดอันดับตามยอดขาย
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseFullReportModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <HiXMark className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {itemSalesData.reduce((sum, item) => sum + item.quantity, 0)}
+                  </p>
+                  <p className="text-sm text-blue-600">ชิ้นทั้งหมด</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-green-600">
+                    ฿{itemSalesData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-green-600">รายได้รวม</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {itemSalesData.length}
+                  </p>
+                  <p className="text-sm text-purple-600">รายการสินค้า</p>
+                </div>
+              </div>
+
+              {/* Full Items List */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 mb-4">รายการสินค้าจัดอันดับ</h4>
+                {itemSalesData.map((item, index) => {
+                  const rankColors = [
+                    'bg-yellow-100 text-yellow-600 border-yellow-200', // 1st
+                    'bg-gray-100 text-gray-600 border-gray-200',       // 2nd
+                    'bg-orange-100 text-orange-600 border-orange-200', // 3rd
+                    'bg-blue-100 text-blue-600 border-blue-200',       // 4th+
+                    'bg-green-100 text-green-600 border-green-200'     // 5th+
+                  ];
+                  const colorIndex = index < 3 ? index : (index < 5 ? 3 : 4);
+                  const icons = [
+                    <HiStar className="w-4 h-4" />,
+                    <HiStar className="w-4 h-4" />,
+                    <HiStar className="w-4 h-4" />,
+                    <HiCheckCircle className="w-4 h-4" />,
+                    <HiCheckCircle className="w-4 h-4" />
+                  ];
+                  
+                  return (
+                    <div
+                      key={item.name}
+                      className={`flex items-center justify-between p-4 border rounded-lg ${rankColors[colorIndex]} transition-colors hover:shadow-md`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${rankColors[colorIndex]}`}>
+                          <div className="flex items-center space-x-1">
+                            {icons[colorIndex]}
+                            <span className="text-sm font-bold">#{index + 1}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 text-base">{item.name}</p>
+                          <p className="text-sm text-gray-500">ขายแล้ว {item.quantity} ชิ้น</p>
+                          <p className="text-xs text-gray-400">
+                            คิดเป็น {((item.quantity / itemSalesData.reduce((sum, i) => sum + i.quantity, 0)) * 100).toFixed(1)}% ของยอดขายทั้งหมด
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 text-lg">฿{item.revenue.toLocaleString()}</p>
+                        <p className="text-sm text-gray-500">รายได้</p>
+                        <p className="text-xs text-gray-400">
+                          ฿{Math.round(item.revenue / item.quantity)} ต่อชิ้น
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+              <div className="text-sm text-gray-500">
+                ข้อมูล ณ วันที่ 5 พฤศจิกายน 2025
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setActiveTab("reports")}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  ดูรายงานเต็ม
+                </button>
+                <button
+                  onClick={handleCloseFullReportModal}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
+                >
+                  ปิด
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
